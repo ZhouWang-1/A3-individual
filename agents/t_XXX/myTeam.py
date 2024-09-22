@@ -6,13 +6,12 @@ from Azul.azul_model import AzulGameRule as GameRule
 from copy import deepcopy
 from collections import deque
 
+# class myAgent(Agent):
+# def __init__(self,_id):
+# super().__init__(_id)
 
-#class myAgent(Agent):
-    #def __init__(self,_id):
-        #super().__init__(_id)
-    
-    #def SelectAction(self,actions,game_state):
-        #return random.choice(actions)
+# def SelectAction(self,actions,game_state):
+# return random.choice(actions)
 
 
 PLAYER_COUNT = 2
@@ -63,70 +62,75 @@ class MCTS:
         self.agent_id = agent_id
 
     def choose_move(self, game_state):
-    start_time = time.time()
+        start_time = time.time()
 
-    for i in range(self.num_rollouts):
-        if self.time_exceeded(start_time):
-            break
+        for i in range(self.num_rollouts):
+            if self.time_exceeded(start_time):
+                break
 
-        node = Node(game_state, self.agent_id)
-        node = self.select_node(node)
+            node = Node(game_state, self.agent_id)
+            node = self.select_node(node)
 
-        if len(node.unvisited_moves) != 0:
-            new_node = self.expand_node(node)
-            winner = self.simulate_random_game(new_node)
-            self.backpropagate(node, winner)
+            if len(node.unvisited_moves) != 0:
+                new_node = self.expand_node(node)
+                winner = self.simulate_random_game(new_node)
+                self.backpropagate(node, winner)
 
-    return self.select_best_move(game_state)
+        return self.select_best_move(game_state)
 
-def time_exceeded(self, start_time):
-    return THINKTIME <= time.time() - start_time
+    def time_exceeded(self, start_time):
+        return THINKTIME <= time.time() - start_time
 
-def select_node(self, node):
-    # Selection phase: Traverse down the tree until an unvisited move is found or no more children exist
-    while len(node.unvisited_moves) == 0 and node.children:
-        node = self.select_child(node)
-    return node
+    def select_node(self, node):
+        # Selection phase: Traverse down the tree until an unvisited move is found or no more children exist
+        while len(node.unvisited_moves) == 0 and node.children:
+            node = self.select_child(node)
+        return node
 
-def expand_node(self, node):
-    # Expansion phase: Expand by selecting an unvisited move
-    simulator = GameRule(PLAYER_COUNT)
-    move = node.unvisited_moves[0]
-    node.unvisited_moves.remove(move)
+    def expand_node(self, node):
+        # Expansion phase: Expand by selecting an unvisited move
+        simulator = GameRule(PLAYER_COUNT)
+        move = node.unvisited_moves[0]
+        node.unvisited_moves.remove(move)
 
-    next_state = deepcopy(node.state)
-    simulator.current_agent_index = node.id
-    simulator.current_game_state = simulator.generateSuccessor(next_state, move, node.id)
-    simulator.current_agent_index = simulator.getNextAgentIndex()
+        next_state = deepcopy(node.state)
+        simulator.current_agent_index = node.id
+        simulator.current_game_state = simulator.generateSuccessor(next_state, move, node.id)
+        simulator.current_agent_index = simulator.getNextAgentIndex()
 
-    new_node = Node(simulator.current_game_state, simulator.current_agent_index, node, move)
-    node.children.append(new_node)
-    
-    return new_node
+        new_node = Node(simulator.current_game_state, simulator.current_agent_index, node, move)
+        node.children.append(new_node)
 
-def backpropagate(self, node, winner):
-    # Backpropagation phase: Update the stats for all nodes on the path back to the root
-    while node is not None:
-        node.win_counts[winner] += 1
-        node.num_rollouts += 1
-        node = node.parent
+        return new_node
 
-def select_best_move(self, game_state):
-    # Final phase: Select the best move based on the win rate
-    best_reward = -1
-    best_move = None
+    def backpropagate(self, node, winner):
+        # Backpropagation phase: Update the stats for all nodes on the path back to the root
+        while node is not None:
+            node.win_counts[winner] += 1
+            node.num_rollouts += 1
+            node = node.parent
 
-    for child in Node(game_state, self.agent_id).children:
-        if child.num_rollouts != 0:
-            win_rate = child.win_counts[self.agent_id] / child.num_rollouts
-        else:
-            win_rate = 0
+    def select_best_move(self, game_state):
+        # Final phase: Select the best move based on the win rate
+        best_reward = -1
+        best_move = None
 
-        if win_rate > best_reward:
-            best_reward = win_rate
-            best_move = child.move
+        for child in Node(game_state, self.agent_id).children:
+            if child.num_rollouts != 0:
+                win_rate = child.win_counts[self.agent_id] / child.num_rollouts
+            else:
+                win_rate = 0
 
-    return best_move
+            if win_rate > best_reward:
+                best_reward = win_rate
+                best_move = child.move
+
+        return best_move
+
+
+
+
+
     def select_child(self, node: Node):
         total_rollouts = sum(child.num_rollouts for child in node.children)
 
@@ -144,6 +148,72 @@ def select_best_move(self, game_state):
                 best_child = child
 
         return best_child
+
+    def choose_move(self, game_state):
+        start_time = time.time()
+
+        for i in range(self.num_rollouts):
+            if self.time_exceeded(start_time):
+                break
+
+            node = Node(game_state, self.agent_id)
+            node = self.select_node(node)
+
+            if len(node.unvisited_moves) != 0:
+                new_node = self.expand_node(node)
+                winner = self.simulate_random_game(new_node)
+                self.backpropagate(node, winner)
+
+        return self.select_best_move(game_state)
+
+    def time_exceeded(self, start_time):
+        return THINKTIME <= time.time() - start_time
+
+    def select_node(self, node):
+        # Selection phase: Traverse down the tree until an unvisited move is found or no more children exist
+        while len(node.unvisited_moves) == 0 and node.children:
+            node = self.select_child(node)
+        return node
+
+    def expand_node(self, node):
+        # Expansion phase: Expand by selecting an unvisited move
+        simulator = GameRule(PLAYER_COUNT)
+        move = node.unvisited_moves[0]
+        node.unvisited_moves.remove(move)
+
+        next_state = deepcopy(node.state)
+        simulator.current_agent_index = node.id
+        simulator.current_game_state = simulator.generateSuccessor(next_state, move, node.id)
+        simulator.current_agent_index = simulator.getNextAgentIndex()
+
+        new_node = Node(simulator.current_game_state, simulator.current_agent_index, node, move)
+        node.children.append(new_node)
+
+        return new_node
+
+    def backpropagate(self, node, winner):
+        # Backpropagation phase: Update the stats for all nodes on the path back to the root
+        while node is not None:
+            node.win_counts[winner] += 1
+            node.num_rollouts += 1
+            node = node.parent
+
+    def select_best_move(self, game_state):
+        # Final phase: Select the best move based on the win rate
+        best_reward = -1
+        best_move = None
+
+        for child in Node(game_state, self.agent_id).children:
+            if child.num_rollouts != 0:
+                win_rate = child.win_counts[self.agent_id] / child.num_rollouts
+            else:
+                win_rate = 0
+
+            if win_rate > best_reward:
+                best_reward = win_rate
+                best_move = child.move
+
+        return best_move
 
     def simulate_random_game(self, node: Node, depth=4):
         simulator = GameRule(PLAYER_COUNT)
@@ -203,12 +273,14 @@ def reward(state, id):
 
     return reward_value
 
+
 def grid_reward(grid_state):
     reward_value = 0
     for x in range(5):
         for y in range(5):
             reward_value += evaluate_grid_position(x, y, grid_state[x][y])
     return reward_value
+
 
 def evaluate_grid_position(x, y, grid_value):
     if x == 2 and y == 2 and grid_value == 1:
@@ -217,16 +289,20 @@ def evaluate_grid_position(x, y, grid_value):
         return 1
     return 0
 
+
 def first_agent_bonus(state, id):
     if state.next_first_agent == id:
         return 1
     return 0
 
+
 def score_round_bonus(agent_state):
     return agent_state.ScoreRound()[0]
 
+
 def end_of_game_bonus(agent_state):
     return agent_state.EndOfGameScore()
+
 
 def get_best_action(state, actions, id):
     start_time = time.time()
@@ -246,18 +322,23 @@ def get_best_action(state, actions, id):
 
     return best_action
 
+
 #
 def time_exceeded(start_time):
     return time.time() - start_time >= THINKTIME
+
 
 def simulate_next_state(state, simulator, action, id):
     next_state = deepcopy(state)
     return simulator.generateSuccessor(next_state, action, id)
 
+
 def compute_reward(state, id):
     return reward(state, id)
+
 
 def update_best_action(best_reward, best_action, reward_value, action):
     if reward_value > best_reward:
         return reward_value, action
     return best_reward, best_action
+   
