@@ -46,15 +46,14 @@ class Node():
         if len(actions) <= branch_limit:
             self.unvisited_moves = actions
         else:
-            ls = []
+            list = []
             for action in actions:
-                new_state = deepcopy(state)
-                next_state = simulator.generateSuccessor(new_state, action, id)
-                ls.append((next_state, action))
+                next_state = simulator.generateSuccessor(deepcopy(state), action, id)
+                list.append((next_state, action))
 
-            reward_list = [(reward(next_state, id), action) for next_state, action in ls]
-            sorted_list = sorted(reward_list, key=lambda x: x[0], reverse=True)[:branch_limit]
-            self.unvisited_moves = [action for _, action in sorted_list]
+            reward_list = [(reward(next_state, id), action) for next_state, action in list]
+            sorted_reward_list = sorted(reward_list, key=lambda x: x[0], reverse=True)[:branch_limit]
+            self.unvisited_moves = [action for _, action in sorted_reward_list]
 
 
 class MCTS:
@@ -64,52 +63,70 @@ class MCTS:
         self.agent_id = agent_id
 
     def choose_move(self, game_state):
-        start_time = time.time()
+    start_time = time.time()
 
-        for i in range(self.num_rollouts):
-            if THINKTIME <= time.time() - start_time:
-                break
+    for i in range(self.num_rollouts):
+        if self.time_exceeded(start_time):
+            break
 
-            node = Node(game_state, self.agent_id)
-            while len(node.unvisited_moves) == 0 and node.children:
-                node = self.select_child(node)
+        node = Node(game_state, self.agent_id)
+        node = self.select_node(node)
 
-            if len(node.unvisited_moves) != 0:
-                simulator = GameRule(PLAYER_COUNT)
-                move = node.unvisited_moves[0]
-                node.unvisited_moves.remove(move)
+        if len(node.unvisited_moves) != 0:
+            new_node = self.expand_node(node)
+            winner = self.simulate_random_game(new_node)
+            self.backpropagate(node, winner)
 
-                next_state = deepcopy(node.state)
-                simulator.current_agent_index = node.id
-                simulator.current_game_state = simulator.generateSuccessor(next_state, move, node.id)
-                simulator.current_agent_index = simulator.getNextAgentIndex()
+    return self.select_best_move(game_state)
 
-                new_node = Node(simulator.current_game_state, simulator.current_agent_index, node, move)
-                node.children.append(new_node)
+def time_exceeded(self, start_time):
+    return THINKTIME <= time.time() - start_time
 
-                winner = self.simulate_random_game(new_node)
+def select_node(self, node):
+    # Selection phase: Traverse down the tree until an unvisited move is found or no more children exist
+    while len(node.unvisited_moves) == 0 and node.children:
+        node = self.select_child(node)
+    return node
 
-                # Backpropagation
-                while node is not None:
-                    node.win_counts[winner] += 1
-                    node.num_rollouts += 1
-                    node = node.parent
+def expand_node(self, node):
+    # Expansion phase: Expand by selecting an unvisited move
+    simulator = GameRule(PLAYER_COUNT)
+    move = node.unvisited_moves[0]
+    node.unvisited_moves.remove(move)
 
-        best_reward = -1
-        best_move = None
+    next_state = deepcopy(node.state)
+    simulator.current_agent_index = node.id
+    simulator.current_game_state = simulator.generateSuccessor(next_state, move, node.id)
+    simulator.current_agent_index = simulator.getNextAgentIndex()
 
-        for child in Node(game_state, self.agent_id).children:
-            if child.num_rollouts != 0:
-                win_rate = child.win_counts[self.agent_id] / child.num_rollouts
-            else:
-                win_rate = 0
+    new_node = Node(simulator.current_game_state, simulator.current_agent_index, node, move)
+    node.children.append(new_node)
+    
+    return new_node
 
-            if win_rate > best_reward:
-                best_reward = win_rate
-                best_move = child.move
+def backpropagate(self, node, winner):
+    # Backpropagation phase: Update the stats for all nodes on the path back to the root
+    while node is not None:
+        node.win_counts[winner] += 1
+        node.num_rollouts += 1
+        node = node.parent
 
-        return best_move
+def select_best_move(self, game_state):
+    # Final phase: Select the best move based on the win rate
+    best_reward = -1
+    best_move = None
 
+    for child in Node(game_state, self.agent_id).children:
+        if child.num_rollouts != 0:
+            win_rate = child.win_counts[self.agent_id] / child.num_rollouts
+        else:
+            win_rate = 0
+
+        if win_rate > best_reward:
+            best_reward = win_rate
+            best_move = child.move
+
+    return best_move
     def select_child(self, node: Node):
         total_rollouts = sum(child.num_rollouts for child in node.children)
 
